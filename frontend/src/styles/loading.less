@@ -1,0 +1,50 @@
+@import url(./config.less);
+.loading{
+    padding:30px 50px;
+}
+@media (max-width:768px) {
+    .loading{
+       text-align: center; 
+    }
+}
+.loading-beat{
+    -webkit-animation: loading-beat 0.7s infinite linear;
+    animation: loading-beat 0.7s infinite linear;
+
+    -webkit-animation-fill-mode: both;
+    animation-fill-mode: both;
+
+    display: inline-block;
+    width:10px;
+    height:10px;
+    background-color:@color-primary;
+    border-radius: 50%;
+}
+.loading-beat-odd{
+    -webkit-animation-delay: 0s;
+    animation-delay: 0s;
+}
+.loading-beat-even{
+    -webkit-animation-delay: 0.35s;
+    animation-delay: 0.35s;
+}
+@-webkit-keyframes loading-beat{
+    50%{
+        -webkit-transform: scale(0.75);
+        -webkit-opacity: 0.2;             
+    }
+    100%{
+        -webkit-transform: scale(1);
+        -webkit-opacity: 1;             
+    }
+}
+@keyframes loading-beat{
+    50%{
+        transform: scale(0.75);      
+        opacity: 0.2;
+    }
+    100%{
+        transform: scale(1);            
+        opacity: 1;
+    }
+}
