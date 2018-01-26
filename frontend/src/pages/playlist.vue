@@ -261,8 +261,9 @@ export default {
             this.add()
         })
         bus.$on("playlist:current",(index)=>{
-            document.querySelector("#main").scrollTop=index*36
             this.current=index
+            if(this.$route.path!="/playlist/")return false
+            document.querySelector("#main").scrollTop=index*36
         })
 
         bus.$on("playlist:reload",(data)=>{
@@ -327,7 +328,7 @@ export default {
                 this.toast.content="地址不能为空"
                 return false
             }
-            let url=this.$root.server+"/music/save/"
+            let url=this.$root.api("/music/save/");
             let params={
                 name:this.form.name,
                 url:this.form.url,
@@ -337,14 +338,15 @@ export default {
                 params.id=this.form.id
             }
             this.$http.post(url,params).then(response=>{
-                if(response.data.success){
+                let data=response.data
+                if(data.code==200){
                     this.form.show=false
                     if(this.form.item!=undefined){
                         this.form.item.name=this.form.name
                         this.form.item.url=this.form.url
                     }else{
                         this.items.unshift({
-                            id:response.data.id,
+                            id:data.id,
                             name:this.form.name,
                             url:this.form.url,
                         })
@@ -365,13 +367,14 @@ export default {
             this.$root.confirm.content="确定要删除吗？"
 
             this.$root.confirm.ok=()=>{
-                let url=this.$root.server+"/music/delete/"
+                let url=this.$root.api("/music/delete/");
                 let params={
                     id:this.items[index].id,
                     token:localStorage.token,
                 }
                 this.$http.post(url,params).then(response=>{
-                    if(response.data.success){
+                    let data=response.data
+                    if(data.code==200){
                         this.items.splice(index,1)
                         this.toast.show=true  
                         this.toast.content="删除成功"

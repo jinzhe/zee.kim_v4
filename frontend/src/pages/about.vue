@@ -127,7 +127,7 @@
 <template>
 <div class="about">
      <div class="box info">
-        <img src="../images/avatar.jpg" class="avatar" @click="github">
+        <img src="../images/avatar.jpg" alt="Zee Kim" class="avatar" @click="github">
         <div class="header"></div>
         <div class="body">
             <p class="nickname">zee</p>
@@ -147,7 +147,7 @@
         <div class="input">
             <textarea v-model="content" id="content"  placeholder="想说些什么？" maxlength="500"></textarea>
         </div>
-        <div class="button" @click="submit" :class="{'disabled':sendTimeout>0}">
+        <div class="button" role="button" @click="submit" :class="{'disabled':sendTimeout>0}">
             {{sendButton}}
             <template v-if="sendTimeout>0">
                 ({{sendTimeout}})
@@ -236,14 +236,14 @@ export default {
             window.localStorage.email=this.email.trim()
             this.sendButton="努力发送中..."
             // 提交
-            let url=this.$root.server+"/sendmail/"
+            let url=this.$root.api("/sendmail/");
             this.$http.post(url,{
                 name:this.name,
                 content:this.content,
                 email:this.email,
             }).then(response=> {
                 let data=response.data
-                if (data.success) {
+                if (data.code==200) {
                     this.toast.show=true
                     this.toast.content="发送成功"
                     this.content=""

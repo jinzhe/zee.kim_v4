@@ -45,7 +45,7 @@
  
 <template>
 <div class="login" :class="{'show':show}">
-    <input type="password" v-model="password" maxlength="16" @keyup.enter="submit" placeholder="请输入暗号 ^.^">
+    <input type="text" v-model="password" maxlength="16" @keyup.enter="submit" placeholder="请输入暗号 ^.^"  autocomplete="none">
  
     <div class="close" @click="show=false">
         <svg viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="50" height="50">
@@ -86,10 +86,10 @@ export default {
                 this.$root.toast.content="密码都没有写"
                 return false
             }
-            let url=this.$root.server+"/login/"
+            let url=this.$root.api("/login/")
             this.$http.post(url,{password:this.password}).then(response=> {
                 let data=response.data
-                if(data.success){
+                if(data.code==200){
                     this.$root.toast.show=true
                     this.$root.toast.content="登录成功"
                     window.localStorage.token=data.token

@@ -107,9 +107,17 @@
             transform:rotate(180deg);
         }
     }
+
 }
  
-
+.empty{
+    padding-top: 50px;
+    text-align: center;
+    color:#ccc;
+    img{
+        margin:10px;
+    }
+}
 </style>
  
 <template>
@@ -139,7 +147,10 @@
         <div class="loading-beat loading-beat-even"></div>
         <div class="loading-beat loading-beat-odd"></div>
     </div>
-
+    <div class="empty" v-if="loaded && items.length==0">
+        <img src="../images/404.svg"><br>
+        主人很懒没有写任何内容
+    </div>
 </div>
 </template>
 
@@ -176,10 +187,14 @@ export default {
     mounted(){
         bus.$on("reload",()=>{
             this.items=[]
+            this.lastMonth='';
+            this.params.page=1;
             this.getItems()
         })
         bus.$on("login",()=>{
             this.items=[]
+            this.lastMonth='';
+            this.params.page=1;
             this.getItems()
         })
         bus.$on("hidePost",()=>{
@@ -192,7 +207,7 @@ export default {
     methods:{
         getItems(){
             // 提交字段
-            let url=this.$root.server+"/post/list/"
+            let url=this.$root.api("/post/list/");
             let query={};
             query.pagesize=this.params.pagesize;
             query.page=this.params.page;
@@ -201,7 +216,7 @@ export default {
             }
             this.$http.post(url,query).then(response=> {
                 let data=response.data
-                if (data.success) {
+                if (data.code==200) {
                     this.params.count=data.result.count
                     if(Math.ceil(data.result.count/this.params.pagesize)<=this.params.page){
                         this.isEnd=true

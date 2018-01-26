@@ -1,13 +1,17 @@
 
-## 使用步骤
+## 前端部署
 
- - 去装一个nodejs（https://nodejs.org/en/） 和 mysql 
- - 进入到frontend 执行 npm i
- - 导入数据库 server/db.sql 
- - 配置config.json (数据库账号、token登录密码、stmp账号)
- - 启动server（根据自己平台找相应的文件）
- - 安装好后执行npm run dev 
- - 打开http://127.0.0.1:9527
- - 按ESC 输入token密码登录后可以发布文章了。
+> 前端是采用 Vuejs 2.x 框架编写的，需要去装一个Nodejs开发环境。打开命令行进入到你的目录后执行npm run dev后会启动浏览器。如果需要修改服务器地址需要打开root.vue文件（169行）。
 
-有问题请加入Q群：16740622
+## 后端部署
+ 
+> 后端是用php写的。把server文件夹里面的放到你的服务器的任意文件夹，执行install.php 配置数据库等账号信息即可。注意如果是linux和macos要给几个文件设置0777权限。
+ 
+
+## 如何发布内容？
+
+> 按ESC 输入密码登录后可以发布文章了。如果要在关于我们那发布邮件需要配置smtp账号(core/config.php)。
+
+## 联系我们
+
+> 有问题请加入Q群：16740622

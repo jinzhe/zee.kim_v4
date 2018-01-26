@@ -14,30 +14,26 @@
     &:hover .panel{
         opacity: 1;
     }
-    &:hover .control{
-        opacity:1;
-        transform: translate(-50%,0);
-    }
     .spectrum{
         position: absolute;
         left:0px;
         bottom:0px;
         height:70px;
         width:300px;
+        pointer-events: none;
         @media (max-width:768px) {
             width:100%;
         }
     }
     .control{
         position: absolute;
-        bottom:60px;
+        bottom:50px;
         left:50%;
         display: flex;
         justify-content: space-between;
         align-items: center;
         transition:all 600ms cubic-bezier(.4,0,0,1);
-        opacity: 0;
-        transform: translate(-50%,10px);
+        transform: translate(-50%,0px);
         @media (max-width:768px) {
             opacity: .6;
         }
@@ -73,7 +69,7 @@
          transition:all 600ms cubic-bezier(.4,0,0,1);
          opacity: .5;
          .name{
-            font-family:DIN,"Helvetica Neue","Arial","PingFang SC","Hiragino Sans GB","STHeiti","Microsoft YaHei","WenQuanYi Micro Hei",sans-serif;
+            font-family:DIN,"HelveticaNeue","Arial","PingFang SC","Hiragino Sans GB","STHeiti","Microsoft YaHei","WenQuanYi Micro Hei",sans-serif;
             font-size: 10px;
             line-height: 20px;
             color: #fff;
@@ -93,22 +89,37 @@
             height:2px;
             border-radius: 2px;
             background: rgba(255,255,255,.5);
-            div{
+            position: relative;
+            & > span.loaded{
+                display: block;
+                width:0%;
+                height: 100%;
+                border-radius: 2px;
+                background:#fff;
+                position: absolute;
+                left:0;
+                top:0;
+            }
+            & > div{
                 width:0%;
                 height: 100%;
                 border-radius: 2px;
                 background: @color-primary;
-                position: relative;
-                &:after{
-                    content:"";
-                    position: absolute;
-                    right:-3px;
-                    top:-3px;
-                    width:7px;
-                    height:7px;
-                    background:#fff;
-                    border-radius: 50%;
-                }
+                position: absolute;
+                left:0;
+                top:0;
+
+            }
+            & > span.circle {
+                content:"";
+                position: absolute;
+                left:0px;
+                top:-4px;
+                width:10px;
+                height:10px;
+                background:#fff;
+                border-radius: 50%;
+                transform:translateX(-5px);
             }
         }
     }
@@ -118,21 +129,20 @@
 
 <template>
 <div class="player">
-    <audio crossOrigin="anonymous" id="audio" preload="preload"  :src="url"  type="audio/mpeg"></audio>
+    <audio crossOrigin="anonymous" id="audio" :src="url" type="audio/mpeg"></audio>
     <canvas class="spectrum" id="spectrum"></canvas>
-
     <div class="control">
-        <span class="loop" @click.stop="loopToggle">
-            <template v-if="loop"><img src="./images/player/loop.svg" width="14"></template>
-            <template v-else><img src="./images/player/loopone.svg" width="14"></template>
+        <span class="loop" @click.stop="loopToggle" role="button">
+            <template v-if="loop"><img src="./images/player/loop.svg" width="14"  alt="循环播放"></template>
+            <template v-else><img src="./images/player/loopone.svg" width="14"  alt="单曲循环"></template>
         </span>
-        <span @click.stop="prev"><img class="prev" src="./images/player/prev.svg"></span>
-        <span class="play" @click.stop="toggle">
-            <template v-if="autoplay"><img src="./images/player/pause.svg"></template>
-            <template v-else><img src="./images/player/play.svg"></template>
+        <span @click.stop="prev" role="button"><img class="prev" src="./images/player/prev.svg" alt="上一曲"></span>
+        <span class="play" @click.stop="toggle" role="button">
+            <template v-if="autoplay"><img src="./images/player/pause.svg" alt="暂停"></template>
+            <template v-else><img src="./images/player/play.svg" alt="播放"></template>
         </span>
-        <span @click.stop="next"><img class="next" src="./images/player/next.svg"></span>
-        <span @click.stop="playlist"><img class="next" src="./images/player/playlist.svg"></span>
+        <span @click.stop="next" role="button"><img class="next" src="./images/player/next.svg" alt="下一曲"></span>
+        <span @click.stop="playlist" role="button"><img class="next" src="./images/player/playlist.svg" alt="播放列表"></span>
     </div>
 
     <div class="panel">   
@@ -144,7 +154,9 @@
             {{name}}
         </div>
         <div class="progress">
+            <span class="loaded" :style="{width:loaded+'%'}"></span>
             <div :style="{width:progress+'%'}"></div>
+            <span class="circle" :style="{left:progress+'%'}"></span>
         </div>
     </div>
 
@@ -152,6 +164,8 @@
 </template>
 
 <script>
+import passive from './scripts/passive'
+
 export default {
     name:'player',
     data() {
@@ -164,6 +178,7 @@ export default {
         	time:"00:00",//显示时间
         	name:"",
         	url:"",
+            loaded:0,
         	progress:0,
         	current:0,
             loop:true,
@@ -181,7 +196,8 @@ export default {
         if(this.isIOS()){
             this.autoplay=false
         }
-        document.addEventListener("keydown",e=>{
+        let that=this;
+        document.addEventListener("keydown",function(e){
             if(e.target.nodeName=="TEXTAREA"||e.target.nodeName=="INPUT"){
                 return false
             }
@@ -189,22 +205,22 @@ export default {
                 e.preventDefault()
                 let code=e.keyCode
                 if(code==32){
-                   this.toggle() 
+                   that.toggle() 
                 }
                 if(code==37){
-                    this.forward(false)
+                    that.forward(false)
                 }
                 if(code==38){
-                   this.prev() 
+                   that.prev() 
                 }
                 if(code==39){
-                    this.forward(true)
+                    that.forward(true)
                 }
                 if(code==40){
-                   this.next() 
+                   that.next() 
                 }
             }
-        },false)
+        },passive)
     },
     mounted(){
         bus.$on("select",index=>{
@@ -219,7 +235,7 @@ export default {
             }
         },
         init(){
-            let url=this.$root.server+"/music/"
+            let url=this.$root.api("/music/");
             let params={}
             if(localStorage.token!=undefined){
                 params.token=localStorage.token
@@ -228,7 +244,7 @@ export default {
                 let data=response.data
                 // console.log(data)
 
-                if (data.success) {
+                if (data.code==200) {
                     data.result.sort(function(){
                         return  Math.random()>0.5?-1:1;
                     })
@@ -252,17 +268,19 @@ export default {
                             // console.log("canplay")
                             this.play()
                             this.loading=true
-                        },false) 
+                        },passive) 
                     }else{
                         this.status=false
                     }
+
                     this.audio.addEventListener("ended",e=>{
                         if(this.loop){
                             this.next()
                         }else{
                             this.play()
                         }
-                    },false)
+                    },passive)
+
                     this.audio.addEventListener("timeupdate",e=>{
                         if(this.audio.currentTime){
                             if(this.audio.currentTime>0){
@@ -271,7 +289,16 @@ export default {
                             this.time=this.format(this.audio.currentTime)
                             this.progress=this.audio.currentTime/this.audio.duration*100
                         }
-                    }, true);
+                    }, passive);
+
+                    this.audio.addEventListener('progress', () => {
+                        const percentage = this.audio.buffered.length ? this.audio.buffered.end(this.audio.buffered.length - 1) / this.audio.duration : 0;
+                        this.loaded=percentage*100
+                    },passive);
+
+                    this.audio.addEventListener('abort', e=>{
+                        this.pause()
+                    },passive);
                 }
             })
         },
@@ -326,6 +353,9 @@ export default {
             }
         },
     	set(index){
+            if(this.items.length==0 || this.items[index]==undefined){
+                return false;
+            }
             this.audio.pause()  
             this.audio.currentTime = 0;
             this.time="00:00"
@@ -333,12 +363,7 @@ export default {
             this.current=index
             window.playlistCurrent=index
             bus.$emit("playlist:current",index)
-    		// this.url=this.$root.server+this.items[index].url
-            if(window.location.toString().substr(0,18)=='https://jinzhe.net'){
-                this.url='https://jinzhe.net/proxy.php?url='+this.items[index].url
-            }else{
-                this.url=this.items[index].url
-            }
+            this.url=this.items[index].url
     		this.name=this.items[index].name
     	},
     	play(){
@@ -347,7 +372,9 @@ export default {
             
             window.localStorage.player=true
             window.setTimeout(()=>{
-                this.audio.play()
+                if (this.audio.paused) {
+                    this.audio.play();
+                }
             },500)
     	},
         playlist(){
@@ -449,6 +476,20 @@ export default {
             
  
     	},
+        changeProgress(e){
+            
+            let offsetX=e.offsetX || e.layerX
+            let target=e.srcElement||e.originalTarget
+            let percent=offsetX / parseInt(getComputedStyle(e.target).getPropertyValue("width"))
+ 
+            this.$nextTick(()=>{
+                this.progress=percent*100
+                if(this.audio.currentTime){
+                    this.audio.currentTime= parseFloat(Math.floor(percent * this.audio.duration))
+                }
+                this.play()
+            })
+        },
         format(number) {
             let minute = parseInt(number / 60)
             let second = parseInt(number % 60)

@@ -51,7 +51,7 @@ html,body {
             -webkit-border-radius:5px;
         }
         .router-view {
-            min-height:100vh;
+            min-height:calc(100vh - 50px);
             @media (min-width:992px) {
                 // border-left:1px solid @color-primary;
             }
@@ -133,7 +133,7 @@ html,body {
             <router-view class="router-view"></router-view>
         </transition>
     </div>
-    <span class="fixed totop"  :class="{'fade':toTopFadeIn}" @click.prevent="toTop">
+    <span class="fixed totop"  :class="{'fade':toTopFadeIn}" @click.prevent="toTop" v-if="toTopStatus">
         <img src="./images/top.svg" width="12">
     </span>
     <span class="fixed publish" @click="publish" v-if="isAdmin">
@@ -149,6 +149,7 @@ html,body {
 </template>
 
 <script>
+import passive from './scripts/passive'
 import login from "./login.vue"
 import topbar from "./topbar.vue"
 import side from "./side.vue"
@@ -164,9 +165,11 @@ export default {
     },
     data(){
         return {
-            server:'http://127.0.0.1:7002',
+            language:'php',
+            server:'http://127.0.0.1/',
             navFixed:false,
             toTopFadeIn:false,
+            toTopStatus:true,
             showPost:false,
             toast:{
                 show:false,
@@ -192,6 +195,7 @@ export default {
     },
  
     mounted(){
+        let that=this
         this.$nextTick(_=>{
             bus.$on("login",()=>{
                 this.isAdmin=window.localStorage.token!=undefined;
@@ -203,21 +207,20 @@ export default {
                 this.showPost=false
             })
 
-            this.isAdmin=window.localStorage.token!=undefined;
-            
-            // pc 上滚动条固定导航
-            document.querySelector("#main").addEventListener("scroll",e=>{
-                if(/(iphone|ios|iPad|android)/i.test(navigator.userAgent)){
-                    return false
-                }
-                let top=e.target.scrollTop
-                if(top>200){
-                    this.toTopFadeIn=true
-                }else{
-                    this.toTopFadeIn=false
-                }
-            },false)
-
+            that.isAdmin=window.localStorage.token!=undefined;
+            if(/(iphone|ios|iPad|android)/i.test(navigator.userAgent)){
+                console.log(that.toTopStatus)
+                that.toTopStatus=false
+            }else{
+                document.querySelector("#main").addEventListener("scroll",function(e){
+                    let top=e.target.scrollTop
+                    if(top>200){
+                        that.toTopFadeIn=true
+                    }else{
+                        that.toTopFadeIn=false
+                    }
+                },passive);
+            }
         })
     },
     methods:{
@@ -265,6 +268,7 @@ export default {
             requestAnimationFrame(go)
         },
         publish(){
+            // console.log(this.$route.path);
             if(this.$route.path=="/playlist/"){
                 bus.$emit("addMusic")
             }else{
@@ -277,6 +281,14 @@ export default {
             this.preview.items=items
             this.preview.index=index
             this.preview.rand=Math.floor(Math.random()*1e10).toString(16)
+        },
+        // 转换不同语言的api地址
+        api(path){
+            if(this.language=="php"){
+                return this.server+"/api.php?path="+path
+            }else{
+                return this.server+path
+            }
         }
     }
 }

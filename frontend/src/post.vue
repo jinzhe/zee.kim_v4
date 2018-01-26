@@ -101,13 +101,6 @@
                     font-size: 1rem;
                     color:@color-text;
                     line-height: 1.5;
-                    &:hover:after{
-                        left:-17px;
-                        top:6px;
-                        width:8px;
-                        height: 8px;
-                        background-color:@color-focus;
-                    }
                     &:after{
                         content:"";
                         position: absolute;
@@ -706,6 +699,7 @@
 </template>
 
 <script>
+import passive from './scripts/passive'
 import toast from './components/toast'
 import switchbox from './components/switchbox'
 import upload from './components/upload'
@@ -761,7 +755,7 @@ export default {
                     }
                 },
                 upload:{
-                    action:this.$root.server+"/post/upload/",
+                    action:this.$root.api("/post/upload/"),
                     data:{
                         token:window.localStorage.token
                     },
@@ -796,7 +790,7 @@ export default {
                             console.error(data)
                             return false;
                         }                 
-                        if(data.success){
+                        if(data.code==200){
                             let photo=this.admin.post.photos.find(function(v){
                                 return v.key==key
                             })
@@ -889,11 +883,11 @@ export default {
             }else{
                 this.scrollDown=false
             }
-        },false)
+        },passive)
     },
     methods:{
         markdown(value){
-            return marked(value)
+            return marked(value.toString())
         },
         back(){
             this.admin.show=false;
@@ -909,7 +903,7 @@ export default {
         getItem(id){
             // 提交字段
             this.ready=false;
-            let url=this.$root.server+"/post/info/"
+            let url=this.$root.api("/post/info/")
             let params={}
             params.id=id
             if(window.localStorage.token!=undefined){
@@ -918,7 +912,7 @@ export default {
             this.$http.post(url,params).then(response=> {
                 this.ready=true;
                 let data=response.data
-                if(data.success){
+                if(data.code==200){
                     this.admin.post.title=data.result.title
                     this.admin.post.content=data.result.content
                     this.admin.post.photos=data.photos
@@ -963,7 +957,7 @@ export default {
                 this.admin.toast.content="内容为啥不写"
                 return false
             }
-            let url=this.$root.server+"/post/save/"
+            let url=this.$root.api("/post/save/")
             let params={}
             if(this.admin.post.id!=undefined){
                 params.id=this.admin.post.id
@@ -982,9 +976,9 @@ export default {
             params.token=window.localStorage.token
             this.$http.post(url,params).then(response=>{
                 let data=response.data
-                if(data.success){
-                    this.post.title=this.admin.post.title=params.title
-                    this.post.content=this.admin.post.content=params.content
+                if(data.code==200){
+                    this.post.title=this.admin.post.title=params.title.toString()
+                    this.post.content=this.admin.post.content=params.content.toString()
                     // this.post.photos=this.admin.post.photos=params.photos
                     this.admin.show=false
                     this.admin.toast.show=true 
@@ -1019,13 +1013,13 @@ export default {
             this.$root.confirm.content="确定要删除吗？"
 
             this.$root.confirm.ok=()=>{
-                let url=this.$root.server+"/post/delete/"
+                let url=this.$root.api("/post/delete/")
                 let params={
                     id:this.post.id,
                 }
                 params.token=window.localStorage.token
                 this.$http.post(url,params).then(response=>{
-                    if(response.data.success){
+                    if(response.data.code==200){
                         bus.$emit("reload",true);
                         this.show=false
                         this.admin.show=false
@@ -1063,13 +1057,13 @@ export default {
         removePhoto(index){
             // this.admin.post.photos.splice(index,1)
             let photo=this.admin.post.photos[index]
-            let url=this.$root.server+"/post/delete-photo/"
+            let url=this.$root.api("/post/delete-photo/")
                 let params={
                     id:photo.id,
                 }
                 params.token=window.localStorage.token
                 this.$http.post(url,params).then(response=>{
-                    if(response.data.success){
+                    if(response.data.code==200){
                         this.admin.post.photos.splice(index,1)
                     }else{
                         this.admin.toast.show=true  

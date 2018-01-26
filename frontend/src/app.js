@@ -13,7 +13,9 @@ Vue.use(VueResource)
 // Vue.config.silent = true
 // Vue.config.productionTip = false
 // Vue.config.devtools = false
-Vue.http.options.headers = {'Content-Type':'application/x-www-form-urlencoded; charset=utf-8'}
+Vue.http.options.headers = {
+	'Content-Type':'application/x-www-form-urlencoded; charset=utf-8',
+}
 Vue.http.options.emulateJSON = true
 
 Date.prototype.format = function (fmt) {
@@ -51,10 +53,10 @@ const router = new VueRouter({
 	mode: 'history',
 	linkActiveClass: 'active',
 	routes: [
-		{path: '/',component: r => require.ensure([], () => r(require('./pages/home.vue')), 'part')},
-		{path: '/post/:id/',component: r => require.ensure([], () => r(require('./pages/home.vue')), 'part')},
-		{path: '/playlist/',component: r => require.ensure([], () => r(require('./pages/playlist.vue')), 'part')}, 
- 		{path: '/about/',component: r => require.ensure([], () => r(require('./pages/about.vue')), 'part')},
+		{path: '/',component: r => require.ensure([], () => r(require('./pages/home.vue')))},
+		{path: '/post/:id/',component: r => require.ensure([], () => r(require('./pages/home.vue')))},
+		{path: '/playlist/',component: r => require.ensure([], () => r(require('./pages/playlist.vue')))}, 
+ 		{path: '/about/',component: r => require.ensure([], () => r(require('./pages/about.vue')))},
 	],
 })
 router.beforeEach((to, from, next) => {
@@ -76,3 +78,5 @@ new Vue({router,...VueRoot}).$mount('#app');
 //     navigator.serviceWorker.register('/sw.js');
 //   }
 // })();
+
+console.log("\n %c Github %c https://github.com/jinzhe/zee.kim \n\n","color: #fff; background: #2cb4eb; padding:5px 0;","background: #efefef; padding:5px 0;");

@@ -108,12 +108,12 @@
     <div class="mask">
         <div class="logo text center">
             <img src="./images/logo.svg"  @click="go('/')">
-            <div class="nav">
-                <span @click.stop="go('/')">记录</span>
+            <div class="nav" role="navigation">
+                <span @click.stop="go('/')" role="button">记录</span>
                 <i>／</i>
-                <span @click.stop="go('/playlist/')">听歌</span>
+                <span @click.stop="go('/playlist/')" role="button">听歌</span>
                 <i>／</i>
-                <span @click.stop="go('/about/')">关于</span>
+                <span @click.stop="go('/about/')" role="button">关于</span>
             </div>
         </div>
 
@@ -126,7 +126,7 @@
 
 <script>
 import player from "./player.vue"
-
+import passive from './scripts/passive'
 export default {
     name:'side',
     components:{
@@ -231,7 +231,7 @@ export default {
                 // e.preventDefault()
                 sy=e.changedTouches[0].pageY
                 sx=e.changedTouches[0].pageX
-            },false)
+            },passive)
 
             let that=this
             document.querySelector(".side").addEventListener("touchend",function(e){
@@ -244,7 +244,7 @@ export default {
                 if(Math.abs(ey - sy) > 20){
                     that.active=false 
                 }
-            },false)
+            },passive)
 
         })
     },
