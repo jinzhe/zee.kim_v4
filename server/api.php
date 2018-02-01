@@ -31,7 +31,7 @@ if ($path == "/post/list/") {
 		$where = " status=1";
 	}
 	// 获取总数
-	$count = $db->count("SELECT id FROM post WHERE status=1");
+	$count = $db->count("SELECT id FROM post WHERE $where");
 	if ($count > 0) {
 		$page = gum::query("page", 1);
 		$pagesize = 20;
@@ -39,7 +39,7 @@ if ($path == "/post/list/") {
 		$page = $page > $pagecount ? $pagecount : $page;
 		$page = $page < 1 ? 1 : $page;
 		// 获取ids
-		$sql = "SELECT id FROM post WHERE status=1 ORDER BY id DESC  LIMIT " . ((intval($page) - 1) * $pagesize) . "," . $pagesize;
+		$sql = "SELECT id FROM post WHERE $where ORDER BY id DESC  LIMIT " . ((intval($page) - 1) * $pagesize) . "," . $pagesize;
 		$rows = $db->rows($sql);
 		if (count($rows) > 0) {
 			$ids = [];
@@ -198,7 +198,7 @@ if ($path == "/music/save/") {
 	$id = gum::query("id");
 	$name = gum::query("name");
 	$url = gum::query("url");
-	$status = gum::query("status");
+	$status = gum::query("status", 1);
 
 	if ($name == "" || $url == "") {
 		gum::json(["code" => 400]);
