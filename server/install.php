@@ -4,8 +4,8 @@ require "./core/gum.php";
 if (file::permissions(ROOT . "/") != 15) {
 	die('温馨提示：“./” 无法写入');
 }
-if (file::permissions(ROOT . "/core/config.php") != 15) {
-	die('温馨提示：“./core/config.php” 无法写入');
+if (file::permissions(ROOT . "/config.php") != 15) {
+	die('温馨提示：“./config.php” 无法写入');
 }
 if ($_POST) {
 	$db_host = trim($_POST['db_host']);
@@ -50,7 +50,7 @@ if ($_POST) {
 		$content .= "// 后台账号\n";
 		$content .= "define('PASSWORD', '$password');\n";
 
-		file_put_contents(ROOT . '/core/config.php', $content) or die("请检查文件 config.php 的权限是否为0777!");
+		file_put_contents(ROOT . '/config.php', $content) or die("请检查文件 config.php 的权限是否为0777!");
 		@unlink("install.php");
 		@unlink("install.sql");
 		die("安装成功");

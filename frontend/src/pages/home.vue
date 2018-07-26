@@ -177,7 +177,7 @@ export default {
             loaded:false,
             lastMonth:'',
             params:{
-                pagesize:50,
+                pagesize:100,
                 page:1,
                 count:0,
             },

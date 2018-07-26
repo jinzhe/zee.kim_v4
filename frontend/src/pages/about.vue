@@ -13,6 +13,15 @@
             padding:0px;
             text-align: center;
         }
+        &.link{
+            .title{
+                margin-bottom: 10px;
+            }
+            a:hover{
+                text-decoration: underline;
+                color:@color-primary;
+            }
+        }
         .header{
             border-radius: 8px 8px 0 0;
             height:120px;
@@ -159,6 +168,18 @@
          <img src="../images/qrcode.jpg" width="150">
          <div class="wechat">加我微信(请注明理由)</div>
     </div>
+    <div class="box info link">
+        <div class="title">LINK</div>
+        <a href="http://fuxiaohei.me/" target="blank">傅小黑</a>
+        <a href="http://shagua.name" target="blank">傻瓜博客</a>
+        <a href="http://cakiss.com/" target="blank">别俊</a>
+        <a href="http://imku.net" target="blank">小林</a>
+        <a href="http://fj126.net" target="blank">蓝雨</a>
+        <a href="http://fulicat.com" target="blank">福利猫</a>
+        <a href="http://im.jetiben.com/" target="blank">Jetiben</a>
+        
+    </div>
+
      <toast :show="toast.show" :content="toast.content" @hide="toast.hide">{{toast.message}}</toast>
 </div>
 </template>

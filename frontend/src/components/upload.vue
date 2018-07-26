@@ -18,6 +18,7 @@ export default {
         },
         dataType: {
             type: String,
+            default:"text",
         },
         auto: {
             type: Boolean,

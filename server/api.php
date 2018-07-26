@@ -1,4 +1,5 @@
 <?php
+require "./config.php";
 require "./core/gum.php";
 gum::init([
 	"headers" => [
@@ -34,7 +35,7 @@ if ($path == "/post/list/") {
 	$count = $db->count("SELECT id FROM post WHERE $where");
 	if ($count > 0) {
 		$page = gum::query("page", 1);
-		$pagesize = 20;
+		$pagesize = 100;
 		$pagecount = ceil($count / $pagesize);
 		$page = $page > $pagecount ? $pagecount : $page;
 		$page = $page < 1 ? 1 : $page;
@@ -65,11 +66,11 @@ if ($path == "/post/list/") {
 // 帖子内容
 if ($path == "/post/info/") {
 	$id = gum::query("id");
-	$post = $db->row("SELECT * FROM post WHERE id=" . $id);
+	$post = $db->row("SELECT * FROM post WHERE id=:id",[":id"=>$id]);
 	if (!$post) {
 		gum::json(["code" => 404]);
 	}
-	$photos = $db->rows("SELECT id,path,description FROM post_photo WHERE post_id=" . $id . " ORDER BY sort ASC");
+	$photos = $db->rows("SELECT id,path,description FROM post_photo WHERE post_id=:id ORDER BY sort ASC",[":id"=>$id]);
 	$db->exec("UPDATE post SET view=view+1 WHERE id=" . $id);
 	gum::json(["code" => 200, "result" => $post, "photos" => $photos]);
 }
@@ -77,27 +78,36 @@ if ($path == "/post/info/") {
 // 帖子图片上传
 if ($path == "/post/upload/") {
 	auth();
-	if (isset($_FILES["file"]["file"])) {
+	if (isset($_FILES["file"]["name"])) {
 		$result = file::upload([
 			"upload" => $_FILES["file"],
-			"target" => "./post/",
+			"target" => "./post/" . date("Ym") . "/",
 		]);
 		if ($result != '') {
-			$db->insert("post_photo", [
-				"path" => $result["name"],
+			$action=$db->insert("post_photo", [
+				"path" => $result["path"],
 				"description" => "",
-				"postid" => 0,
+				"sort" => 0,
+				"post_id" => 0,
 			]);
-			gum::json([
-				"code" => 200,
-				"result" => [
-					"id" => $db->id(),
-					"path" => $result["name"],
-				],
-			]);
+			$id=$db->id();
+			if($id==0){
+				gum::json(["code" => 501,"msg"=>$action]);
+			}else{
+				gum::json([
+					"code" => 200,
+					"result" => [
+						"id" => $id,
+						"path" => $result["path"],
+					],
+				]);
+			}
+
 		} else {
 			gum::json(["code" => 404]);
 		}
+	}else{
+		gum::json(["code" => 500]);
 	}
 }
 
@@ -122,15 +132,17 @@ if ($path == "/post/save/") {
 	];
 	if ($id == "") {
 		$data["time"] = time();
-		$action = $db->insert("post", $data);
+		$db->insert("post", $data);
 		$id = $db->id();
 	} else {
-		$action = $db->update("post", $data, "id=$id");
+		$db->update("post", $data, "id=$id");
 	}
 	$photos = gum::query("photos");
 	if ($photos != "") {
-		$photos = json_decode($photos);
+		$photos = json_decode($photos,true);
+ 		// print_r($photos);
 		foreach ($photos as $key => $value) {
+ 
 			$db->update("post_photo", [
 				"sort" => $key,
 				"description" => $value["description"],
@@ -138,11 +150,7 @@ if ($path == "/post/save/") {
 			], "id=" . $value["id"]);
 		}
 	}
-	if ($action) {
-		gum::json(["code" => 200]);
-	} else {
-		gum::json(["code" => 404]);
-	}
+	gum::json(["code" => 200]);
 }
 
 // 帖子删除
@@ -175,7 +183,7 @@ if ($path == "/post/delete-photo/") {
 	if ($id == "") {
 		gum::json(["code" => 400]);
 	}
-	$photo = $db->row("SELECT path FROM post_photo WHERE post_id=" . $id);
+	$photo = $db->row("SELECT path FROM post_photo WHERE post_id=:id",[":id"=>$id]);
 	// 删除图片记录
 	$success = $db->delete("post_photo", "id=" . $id);
 	if ($success) {

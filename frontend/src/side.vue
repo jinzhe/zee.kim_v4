@@ -9,7 +9,9 @@
     pointer-events: none;
     transform: translateY(100%);
     z-index:9999;
-    background-image: url(./images/side1.jpg);
+    // background-image: url(./images/side1.jpg);
+    background-color:@color-primary;
+    // background-image: linear-gradient(135deg, #a36ac7 0%, #a36ac7 100%);
     background-repeat: no-repeat;
     background-size: cover;
     overflow: hidden;

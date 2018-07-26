@@ -387,11 +387,11 @@ class file {
 						if (self::uploadMove($upload['tmp_name'][$k], $target . $name)) {
 
 							$return[] = array(
-								'name' => $name,
-								'title' => $upload['name'][$k],
-								'size' => $upload['size'][$k],
-								'type' => $upload['type'][$k],
-								'error' => $upload['error'][$k],
+								"path" => str_replace("./", "/", $target) . $name,
+								"name" => $upload['name'][$k],
+								"size" => $upload['size'][$k],
+								"type" => $upload['type'][$k],
+								"error" => $upload['error'][$k],
 							);
 						}
 					}
@@ -406,11 +406,11 @@ class file {
 					$name = empty($rename) ? self::uploadName($ext) : self::uploadRename($rename, $ext);
 					if (self::uploadMove($upload['tmp_name'], $target . $name)) {
 						$return = array(
-							'name' => $name,
-							'title' => $upload['name'],
-							'size' => $upload['size'],
-							'type' => $upload['type'],
-							'error' => $upload['error'],
+							"path" => str_replace("./", "/", $target) . $name,
+							"name" => $upload['name'],
+							"size" => $upload['size'],
+							"type" => $upload['type'],
+							"error" => $upload['error'],
 						);
 					}
 				}
@@ -533,16 +533,18 @@ class file {
 	}
 
 	// 获取CVS文件
-	function getCsv($handle) {
+	public static function csv($file) {
+		$file = fopen($file, "r");
 		$out = array();
 		$n = 0;
-		while ($data = fgetcsv($handle, 10000)) {
+		while ($data = fgetcsv($handle)) {
 			$num = count($data);
 			for ($i = 0; $i < $num; $i++) {
 				$out[$n][$i] = $data[$i];
 			}
 			$n++;
 		}
+		fclose($file);
 		return $out;
 	}
 
@@ -554,9 +556,8 @@ class file {
 	 * @return  array   $data
 	 */
 	public static function writeCache($name, $value) {
-		$path = '../data/cache/' . md5($name) . '.php';
 		if ($value != '') {
-			self::create($path, "<?php return " . var_export($value, true) . ";", LOCK_EX);
+			self::create('../cache/' . $name . '.php', "<?php return " . var_export($value, true) . ";", LOCK_EX);
 		}
 	}
 
@@ -566,8 +567,7 @@ class file {
 	 * @return  array   $data
 	 */
 	public static function readCache($name) {
-		$path = '../data/cache/' . md5($name) . '.php';
-		if (file_exists($path)) {
+		if (file_exists('../cache/' . $name . '.php')) {
 			return include $path;
 		} else {
 			return false;

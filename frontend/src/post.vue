@@ -1,3 +1,460 @@
+<script>
+import passive from './scripts/passive'
+import toast from './components/toast'
+import switchbox from './components/switchbox'
+import upload from './components/upload'
+const highlight = require('highlight.js')
+const marked = require('marked')
+
+marked.setOptions({
+    gfm: true,
+    tables: true,
+    breaks: true,
+    pedantic: false,
+    sanitize: false,
+    smartLists: true,
+    smartypants: false,
+
+    highlight: function (code) {
+        return highlight.highlightAuto(code).value
+    }
+});
+
+
+
+export default {
+    name:'post',
+    components:{
+        upload,toast,switchbox
+    },
+    data() {
+        return {
+            show:false,
+            ready:false,
+            post:{
+                title:"",
+                content:"",
+                photos:[],
+            },
+            scrollDown:false,
+            admin:{
+                show:false,
+                edit:true,
+                post:{
+                    title:"",
+                    content:"",
+                    image:"",
+                    photos:[],
+                    status:true,
+                },
+                toast:{
+                    show:false,
+                    content:"",
+                    hide:()=>{
+                        this.admin.toast.show=false
+                    }
+                },
+                upload:{
+                    action:this.$root.api("/post/upload/"),
+                    data:{
+                        token:window.localStorage.token
+                    },
+                    dataType:"text",
+                    limit:10, //10MB
+                    multiple:true,
+                    queue:true,
+                    change:(files)=>{
+                        // console.log(files)
+                        files.forEach(file=>{
+                            this.admin.post.photos.push({
+                                key:file.key,
+                                progress:0,
+                                data:URL.createObjectURL(file),
+                                description:"",
+                            })
+                        })
+                        
+  
+                    },
+                    progress:(key,percent)=>{
+                        let photo=this.admin.post.photos.find(function(v){
+                            return v.key==key
+                        })
+                        photo.progress=percent
+                        console.log(key,percent)
+                    },
+                    success:(key,data)=>{
+                        console.log(data)
+                        try{
+                            data=JSON.parse(data);
+                        }catch(e){
+                            console.error(data)
+                            return false;
+                        }                 
+                        if(data.code==200){
+                            let photo=this.admin.post.photos.find(function(v){
+                                return v.key==key
+                            })
+                            photo.id=data.result.id+""
+                            photo.path=data.result.path;
+                            delete photo.data
+                            console.log("success",data,photo);
+                            this.$forceUpdate();
+                            
+                        }else{
+                            this.admin.post.photos=this.admin.post.photos.filter(function(v){
+                                return v.key!=key
+                            })
+                        }
+       
+                    },
+                    // 错误
+                    error:(type,result)=>{
+                        // 文件太大
+                        if(type=="limit"){
+                            for (let file of result) {
+                              console.log("超过上传上限",file["type"],file["name"],(file["size"]/1024/1024).toFixed(2)+"MB")  
+                            }
+                        }
+                        // 没有选择文件
+                        if(type=="empty"){
+                            alert("请选择文件")
+                        }
+                        // 没有选择文件
+                        if(type=="action"){
+                            alert("没有指定上传接口api")
+                        }
+                        // 服务器报错
+                        if(type=="server"){
+                             alert("服务器繁忙")
+                        }
+                    }
+                },
+            },
+            
+        }
+    },
+    watch:{
+        "admin.post.title":function(val){
+            this.post.title=val
+        },
+        "admin.post.content":function(val){
+            this.post.content=val
+        },
+        "admin.post.photos":function(val){
+            this.post.photos=val
+        }
+    },
+    mounted(){
+        bus.$on("showPost",(id,title)=>{
+            if(this.show&&id==this.$route.params.id&&this.content!=""){
+                return false;
+            }
+            this.post.title=title||""
+            this.post.content=""
+            this.show=true
+            this.ready=false;
+            setTimeout(_=>{
+                this.getItem(id)
+            },300)
+        })
+
+        bus.$on("addPost",()=>{
+            this.show=false
+            this.admin.post.id=""
+            this.admin.post.title=""
+            this.admin.post.content=""
+            this.admin.post.photos=[]
+            this.admin.post.status=true
+            this.admin.show=true
+            this.admin.edit=false
+        })
+        bus.$on("login",()=>{
+            this.items=[]
+            this.getItems()
+        })
+        bus.$on("hidePost",_=>{
+            this.show=false;
+            this.ready=false;
+        })
+        // pc 上滚动条固定导航
+        document.querySelector("section").addEventListener("scroll",e=>{
+            let top=e.target.scrollTop
+            if(top>50){
+                this.scrollDown=true
+            }else{
+                this.scrollDown=false
+            }
+        },passive)
+    },
+    methods:{
+        markdown(value){
+            return marked(value.toString())
+        },
+        back(){
+            this.admin.show=false;
+        },
+        close(){
+            bus.$emit("hidePost")
+            this.ready=false;
+            this.admin.show=false;
+            this.$router.push({
+                path:'/',
+            })
+        },
+        getItem(id){
+            // 提交字段
+            this.ready=false;
+            let url=this.$root.api("/post/info/")
+            let params={}
+            params.id=id
+            if(window.localStorage.token!=undefined){
+                params.token=window.localStorage.token  
+            }
+            this.$http.post(url,params).then(response=> {
+                this.ready=true;
+                let data=response.data
+                if(data.code==200){
+                    this.admin.post.title=data.result.title
+                    this.admin.post.content=data.result.content
+                    this.admin.post.photos=data.photos
+                    this.admin.post.status=data.result.status=="1"?true:false
+
+                    this.post=data.result
+                    this.post.time = new Date(this.post.time*1000).format("yyyy/mm/dd W")
+                    this.post.view=this.$root.formatDecimal(this.post.view,0)
+                    this.post.photos=data.photos
+                    // this.post.photos.forEach(v=>{
+                    //     v.path=this.$root.server+v.path
+                    // })
+                }else{
+                    this.close()
+                    this.$root.toast.show=true
+                    this.$root.toast.content="该内容可能已删除"
+                }
+            })
+        },
+        
+        open(url){
+            window.open(url)
+        },
+        edit(){
+            this.admin.show=true
+            this.admin.edit=true
+            this.admin.post.id=this.post.id
+            this.admin.post.title=this.post.title
+            this.admin.post.content=this.post.content
+            this.admin.post.photos=this.post.photos
+            this.admin.post.status=this.post.status=="1"?true:false
+            this.$forceUpdate()
+        },
+        save(){
+            if(this.admin.post.title==""){
+                this.admin.toast.show=true  
+                this.admin.toast.content="标题为啥不写"
+                return false
+            }
+            if(this.admin.post.content==""){
+                this.admin.toast.show=true  
+                this.admin.toast.content="内容为啥不写"
+                return false
+            }
+            let url=this.$root.api("/post/save/")
+            let params={}
+            if(this.admin.post.id!=undefined){
+                params.id=this.admin.post.id
+            }
+            params.title=this.admin.post.title
+            params.content=this.admin.post.content
+            params.image=this.admin.post.image
+            // 删除无用的字段节省带宽
+            // this.admin.post.photos.forEach(v=>{
+            //     delete v.data
+            //     delete v.key
+            //     delete v.progress
+            // })
+            params.photos=JSON.stringify(this.admin.post.photos)
+            params.status=Number(this.admin.post.status)
+            params.token=window.localStorage.token
+            this.$http.post(url,params).then(response=>{
+                let data=response.data
+                if(data.code==200){
+                    this.post.title=this.admin.post.title=params.title.toString()
+                    this.post.content=this.admin.post.content=params.content.toString()
+                    // this.post.photos=this.admin.post.photos=params.photos
+                    this.admin.show=false
+                    this.admin.toast.show=true 
+                    if(this.admin.edit){
+                        this.admin.toast.content="更新成功"
+                    }else{
+                        this.admin.toast.content="发布成功"  
+                    }
+                    
+                    bus.$emit("reload",true);
+                }else{
+                    this.admin.toast.show=true  
+                    if(data.code==403){
+                        this.admin.toast.content="权限不足"
+                    }else{
+                        if(this.admin.edit){
+                            this.admin.toast.content="更新失败"
+                        }else{
+                            this.admin.toast.content="发布失败"  
+                        }
+                    }
+                    
+                }
+
+            },response=>{
+                this.admin.toast.show=true  
+                this.admin.toast.content="网络异常"
+            })
+        },
+        remove(){
+            this.$root.confirm.show=true
+            this.$root.confirm.content="确定要删除吗？"
+
+            this.$root.confirm.ok=()=>{
+                let url=this.$root.api("/post/delete/")
+                let params={
+                    id:this.post.id,
+                }
+                params.token=window.localStorage.token
+                this.$http.post(url,params).then(response=>{
+                    if(response.data.code==200){
+                        bus.$emit("reload",true);
+                        this.show=false
+                        this.admin.show=false
+                        this.$root.toast.show=true  
+                        this.$root.toast.content="删除成功"
+                    }else{
+                        this.$root.toast.show=true  
+                        this.$root.toast.content="删除失败"
+                    }
+
+                },response=>{
+                    this.$root.toast.show=true  
+                    this.$root.toast.content="网络异常"
+                })
+            }
+        },
+        moveUp(index){
+            let photo=this.admin.post.photos
+            let max=Math.max(0,index-1)
+            let tmp=photo[index]
+            this.admin.post.photos[index]=photo[max]
+            this.admin.post.photos[max]=tmp
+            
+            this.$forceUpdate()
+        },
+        moveDown(index){
+            let photos=this.admin.post.photos
+            let min=Math.min(photos.length-1,index+1)
+            let tmp=photos[index]
+            this.admin.post.photos[index]=photos[min]
+            this.admin.post.photos[min]=tmp
+            
+            this.$forceUpdate()
+        },
+        removePhoto(index){
+            // this.admin.post.photos.splice(index,1)
+            let photo=this.admin.post.photos[index];
+
+            let url=this.$root.api("/post/delete-photo/")
+            let params={
+                id:photo.id,
+            }
+            params.token=window.localStorage.token
+            this.admin.post.photos.splice(index,1)
+            this.$http.post(url,params).then(response=>{
+                if(response.data.code==200){
+                 
+                }else{
+                    this.admin.toast.show=true  
+                    this.admin.toast.content="删除失败"
+                }
+            },response=>{
+                this.admin.toast.show=true  
+                this.admin.toast.content="网络异常"
+            })
+        },
+        switchUpdateStatus(value){
+            this.admin.post.status=value
+        },
+        markdownAppend(inputer, oldContent, newContent, content, endPosition, start, end){
+            newContent = oldContent.substring(0, endPosition) + content + oldContent.substring(endPosition, oldContent.length)
+            inputer.value = newContent
+            inputer.setSelectionRange(endPosition + start, endPosition + content.length - end)
+            return newContent
+        },
+        markdownUpdate(inputer, oldContent, newContent, startPosition, endPosition, symbol1, symbol2){
+            newContent = oldContent.substring(0, startPosition) + symbol1 + oldContent.substring(startPosition, endPosition) + symbol2 + oldContent.substring(endPosition, oldContent.length)
+            inputer.value = newContent
+            let len = newContent.length
+            inputer.setSelectionRange(len, len)
+            return newContent
+        },
+        // 输入
+        markdownInsert(content) {
+            let inputer = document.querySelector('#content')
+            let startPosition = inputer.selectionStart
+            let endPosition = inputer.selectionEnd
+            let oldContent = inputer.value
+            inputer.focus()
+            let newContent = ''
+            if (startPosition === endPosition) {
+                switch (content) {
+                    case '**Bold**':
+                        newContent = this.markdownAppend(inputer, oldContent, newContent, content, endPosition, 2, 2)
+                        break
+                    case '*Italic*':
+                        newContent = this.markdownAppend(inputer, oldContent, newContent, content, endPosition, 1, 1)
+                        break
+                    case '[Link](http://example.com/)':
+                        newContent = this.markdownAppend(inputer, oldContent, newContent, content, endPosition, 7, 1)
+                        break
+                    case '`code`':
+                        newContent = this.markdownAppend(inputer, oldContent, newContent, content, endPosition, 1, 1)
+                        break
+                    case '![Img](http://example.com/)':
+                        newContent = this.markdownAppend(inputer, oldContent, newContent, content, endPosition, 7, 1)
+                        break
+                    default:
+                        newContent = oldContent.substring(0, endPosition) + content + oldContent.substring(endPosition, oldContent.length)
+                        inputer.value = newContent
+                        break
+                }
+            } else {
+                switch (content) {
+                    case '**Bold**':
+                        newContent = this.markdownUpdate(inputer, oldContent, newContent, startPosition, endPosition, '**', '**')
+                        break
+                    case '*Italic*':
+                        newContent = this.markdownUpdate(inputer, oldContent, newContent, startPosition, endPosition, '*', '*')
+                        break
+                    case '`code`':
+                        newContent = this.markdownUpdate(inputer, oldContent, newContent, startPosition, endPosition, '`', '`')
+                        break
+                    case '[Link](http://example.com/)':
+                        newContent = this.markdownUpdate(inputer, oldContent, newContent, startPosition, endPosition, '[', '](http://example.com/)')
+                        break
+                    case '![Img](http://example.com/)':
+                        newContent = this.markdownUpdate(inputer, oldContent, newContent, startPosition, endPosition, '![', '](http://example.com/)')
+                        break
+                    default:
+                        return false
+                        break
+                }
+            }
+ 
+        }
+    }
+} 
+</script>
+
+
+
+
 <style src="./styles/highlight.css"></style>
 <style lang="less">
 @import url(./styles/config.less);
@@ -574,16 +1031,9 @@
         }
  
     }
-
-    
-
-
- 
-
- 
 }
 </style>
- 
+
 <template>
 <div>
     <div class="post" :class="{'show':show}">
@@ -697,453 +1147,3 @@
     </div>
 </div>
 </template>
-
-<script>
-import passive from './scripts/passive'
-import toast from './components/toast'
-import switchbox from './components/switchbox'
-import upload from './components/upload'
-const highlight = require('highlight.js')
-const marked = require('marked')
-
-marked.setOptions({
-    gfm: true,
-    tables: true,
-    breaks: true,
-    pedantic: false,
-    sanitize: false,
-    smartLists: true,
-    smartypants: false,
-
-    highlight: function (code) {
-        return highlight.highlightAuto(code).value
-    }
-});
-
-
-
-export default {
-    name:'post',
-    components:{
-        upload,toast,switchbox
-    },
-    data() {
-        return {
-            show:false,
-            ready:false,
-            post:{
-                title:"",
-                content:"",
-                photos:[],
-            },
-            scrollDown:false,
-            admin:{
-                show:false,
-                edit:true,
-                post:{
-                    title:"",
-                    content:"",
-                    image:"",
-                    photos:[],
-                    status:true,
-                },
-                toast:{
-                    show:false,
-                    content:"",
-                    hide:()=>{
-                        this.admin.toast.show=false
-                    }
-                },
-                upload:{
-                    action:this.$root.api("/post/upload/"),
-                    data:{
-                        token:window.localStorage.token
-                    },
-                    limit:10, //10MB
-                    multiple:true,
-                    queue:true,
-                    change:(files)=>{
-                        // console.log(files)
-                        files.forEach(file=>{
-                            this.admin.post.photos.push({
-                                key:file.key,
-                                progress:0,
-                                data:URL.createObjectURL(file),
-                                description:"",
-                            })
-                        })
-                        
-  
-                    },
-                    progress:(key,percent)=>{
-                        let photo=this.admin.post.photos.find(function(v){
-                            return v.key==key
-                        })
-                        photo.progress=percent
-                        console.log(key,percent)
-                    },
-                    success:(key,data)=>{
-                        console.log(data)
-                        try{
-                            data=JSON.parse(data);
-                        }catch(e){
-                            console.error(data)
-                            return false;
-                        }                 
-                        if(data.code==200){
-                            let photo=this.admin.post.photos.find(function(v){
-                                return v.key==key
-                            })
-                            photo.id=data.result.id+""
-                            photo.path=data.result.path
-                            delete photo.data
-                            console.log("success",data,photo)
-                            
-                        }else{
-                            this.admin.post.photos=this.admin.post.photos.filter(function(v){
-                                return v.key!=key
-                            })
-                        }
-       
-                    },
-                    // 错误
-                    error:(type,result)=>{
-                        // 文件太大
-                        if(type=="limit"){
-                            for (let file of result) {
-                              console.log("超过上传上限",file["type"],file["name"],(file["size"]/1024/1024).toFixed(2)+"MB")  
-                            }
-                        }
-                        // 没有选择文件
-                        if(type=="empty"){
-                            alert("请选择文件")
-                        }
-                        // 没有选择文件
-                        if(type=="action"){
-                            alert("没有指定上传接口api")
-                        }
-                        // 服务器报错
-                        if(type=="server"){
-                             alert("服务器繁忙")
-                        }
-                    }
-                },
-            },
-            
-        }
-    },
-    watch:{
-        "admin.post.title":function(val){
-            this.post.title=val
-        },
-        "admin.post.content":function(val){
-            this.post.content=val
-        },
-        "admin.post.photos":function(val){
-            this.post.photos=val
-        }
-    },
-    mounted(){
-        bus.$on("showPost",(id,title)=>{
-            if(this.show&&id==this.$route.params.id&&this.content!=""){
-                return false;
-            }
-            this.post.title=title||""
-            this.post.content=""
-            this.show=true
-            this.ready=false;
-            setTimeout(_=>{
-                this.getItem(id)
-            },300)
-        })
-
-        bus.$on("addPost",()=>{
-            this.show=false
-            this.admin.post.id=""
-            this.admin.post.title=""
-            this.admin.post.content=""
-            this.admin.post.photos=[]
-            this.admin.post.status=true
-            this.admin.show=true
-            this.admin.edit=false
-        })
-        bus.$on("login",()=>{
-            this.items=[]
-            this.getItems()
-        })
-        bus.$on("hidePost",_=>{
-            this.show=false;
-            this.ready=false;
-        })
-        // pc 上滚动条固定导航
-        document.querySelector("section").addEventListener("scroll",e=>{
-            let top=e.target.scrollTop
-            if(top>50){
-                this.scrollDown=true
-            }else{
-                this.scrollDown=false
-            }
-        },passive)
-    },
-    methods:{
-        markdown(value){
-            return marked(value.toString())
-        },
-        back(){
-            this.admin.show=false;
-        },
-        close(){
-            bus.$emit("hidePost")
-            this.ready=false;
-            this.admin.show=false;
-            this.$router.push({
-                path:'/',
-            })
-        },
-        getItem(id){
-            // 提交字段
-            this.ready=false;
-            let url=this.$root.api("/post/info/")
-            let params={}
-            params.id=id
-            if(window.localStorage.token!=undefined){
-                params.token=window.localStorage.token  
-            }
-            this.$http.post(url,params).then(response=> {
-                this.ready=true;
-                let data=response.data
-                if(data.code==200){
-                    this.admin.post.title=data.result.title
-                    this.admin.post.content=data.result.content
-                    this.admin.post.photos=data.photos
-                    this.admin.post.status=data.result.status=="1"?true:false
-
-                    this.post=data.result
-                    this.post.time = new Date(this.post.time*1000).format("yyyy/mm/dd W")
-                    this.post.view=this.$root.formatDecimal(this.post.view,0)
-                    this.post.photos=data.photos
-                    // this.post.photos.forEach(v=>{
-                    //     v.path=this.$root.server+v.path
-                    // })
-                }else{
-                    this.close()
-                    this.$root.toast.show=true
-                    this.$root.toast.content="该内容可能已删除"
-                }
-            })
-        },
-        
-        open(url){
-            window.open(url)
-        },
-        edit(){
-            this.admin.show=true
-            this.admin.edit=true
-            this.admin.post.id=this.post.id
-            this.admin.post.title=this.post.title
-            this.admin.post.content=this.post.content
-            this.admin.post.photos=this.post.photos
-            this.admin.post.status=this.post.status=="1"?true:false
-            this.$forceUpdate()
-        },
-        save(){
-            if(this.admin.post.title==""){
-                this.admin.toast.show=true  
-                this.admin.toast.content="标题为啥不写"
-                return false
-            }
-            if(this.admin.post.content==""){
-                this.admin.toast.show=true  
-                this.admin.toast.content="内容为啥不写"
-                return false
-            }
-            let url=this.$root.api("/post/save/")
-            let params={}
-            if(this.admin.post.id!=undefined){
-                params.id=this.admin.post.id
-            }
-            params.title=this.admin.post.title
-            params.content=this.admin.post.content
-            params.image=this.admin.post.image
-            // 删除无用的字段节省带宽
-            // this.admin.post.photos.forEach(v=>{
-            //     delete v.data
-            //     delete v.key
-            //     delete v.progress
-            // })
-            params.photos=JSON.stringify(this.admin.post.photos)
-            params.status=Number(this.admin.post.status)
-            params.token=window.localStorage.token
-            this.$http.post(url,params).then(response=>{
-                let data=response.data
-                if(data.code==200){
-                    this.post.title=this.admin.post.title=params.title.toString()
-                    this.post.content=this.admin.post.content=params.content.toString()
-                    // this.post.photos=this.admin.post.photos=params.photos
-                    this.admin.show=false
-                    this.admin.toast.show=true 
-                    if(this.admin.edit){
-                        this.admin.toast.content="更新成功"
-                    }else{
-                        this.admin.toast.content="发布成功"  
-                    }
-                    
-                    bus.$emit("reload",true);
-                }else{
-                    this.admin.toast.show=true  
-                    if(data.code==403){
-                        this.admin.toast.content="权限不足"
-                    }else{
-                        if(this.admin.edit){
-                            this.admin.toast.content="更新失败"
-                        }else{
-                            this.admin.toast.content="发布失败"  
-                        }
-                    }
-                    
-                }
-
-            },response=>{
-                this.admin.toast.show=true  
-                this.admin.toast.content="网络异常"
-            })
-        },
-        remove(){
-            this.$root.confirm.show=true
-            this.$root.confirm.content="确定要删除吗？"
-
-            this.$root.confirm.ok=()=>{
-                let url=this.$root.api("/post/delete/")
-                let params={
-                    id:this.post.id,
-                }
-                params.token=window.localStorage.token
-                this.$http.post(url,params).then(response=>{
-                    if(response.data.code==200){
-                        bus.$emit("reload",true);
-                        this.show=false
-                        this.admin.show=false
-                        this.$root.toast.show=true  
-                        this.$root.toast.content="删除成功"
-                    }else{
-                        this.$root.toast.show=true  
-                        this.$root.toast.content="删除失败"
-                    }
-
-                },response=>{
-                    this.$root.toast.show=true  
-                    this.$root.toast.content="网络异常"
-                })
-            }
-        },
-        moveUp(index){
-            let photo=this.admin.post.photos
-            let max=Math.max(0,index-1)
-            let tmp=photo[index]
-            this.admin.post.photos[index]=photo[max]
-            this.admin.post.photos[max]=tmp
-            
-            this.$forceUpdate()
-        },
-        moveDown(index){
-            let photos=this.admin.post.photos
-            let min=Math.min(photos.length-1,index+1)
-            let tmp=photos[index]
-            this.admin.post.photos[index]=photos[min]
-            this.admin.post.photos[min]=tmp
-            
-            this.$forceUpdate()
-        },
-        removePhoto(index){
-            // this.admin.post.photos.splice(index,1)
-            let photo=this.admin.post.photos[index]
-            let url=this.$root.api("/post/delete-photo/")
-                let params={
-                    id:photo.id,
-                }
-                params.token=window.localStorage.token
-                this.$http.post(url,params).then(response=>{
-                    if(response.data.code==200){
-                        this.admin.post.photos.splice(index,1)
-                    }else{
-                        this.admin.toast.show=true  
-                        this.admin.toast.content="删除失败"
-                    }
-                },response=>{
-                    this.admin.toast.show=true  
-                    this.admin.toast.content="网络异常"
-                })
-        },
-        switchUpdateStatus(value){
-            this.admin.post.status=value
-        },
-        markdownAppend(inputer, oldContent, newContent, content, endPosition, start, end){
-            newContent = oldContent.substring(0, endPosition) + content + oldContent.substring(endPosition, oldContent.length)
-            inputer.value = newContent
-            inputer.setSelectionRange(endPosition + start, endPosition + content.length - end)
-            return newContent
-        },
-        markdownUpdate(inputer, oldContent, newContent, startPosition, endPosition, symbol1, symbol2){
-            newContent = oldContent.substring(0, startPosition) + symbol1 + oldContent.substring(startPosition, endPosition) + symbol2 + oldContent.substring(endPosition, oldContent.length)
-            inputer.value = newContent
-            let len = newContent.length
-            inputer.setSelectionRange(len, len)
-            return newContent
-        },
-        // 输入
-        markdownInsert(content) {
-            let inputer = document.querySelector('#content')
-            let startPosition = inputer.selectionStart
-            let endPosition = inputer.selectionEnd
-            let oldContent = inputer.value
-            inputer.focus()
-            let newContent = ''
-            if (startPosition === endPosition) {
-                switch (content) {
-                    case '**Bold**':
-                        newContent = this.markdownAppend(inputer, oldContent, newContent, content, endPosition, 2, 2)
-                        break
-                    case '*Italic*':
-                        newContent = this.markdownAppend(inputer, oldContent, newContent, content, endPosition, 1, 1)
-                        break
-                    case '[Link](http://example.com/)':
-                        newContent = this.markdownAppend(inputer, oldContent, newContent, content, endPosition, 7, 1)
-                        break
-                    case '`code`':
-                        newContent = this.markdownAppend(inputer, oldContent, newContent, content, endPosition, 1, 1)
-                        break
-                    case '![Img](http://example.com/)':
-                        newContent = this.markdownAppend(inputer, oldContent, newContent, content, endPosition, 7, 1)
-                        break
-                    default:
-                        newContent = oldContent.substring(0, endPosition) + content + oldContent.substring(endPosition, oldContent.length)
-                        inputer.value = newContent
-                        break
-                }
-            } else {
-                switch (content) {
-                    case '**Bold**':
-                        newContent = this.markdownUpdate(inputer, oldContent, newContent, startPosition, endPosition, '**', '**')
-                        break
-                    case '*Italic*':
-                        newContent = this.markdownUpdate(inputer, oldContent, newContent, startPosition, endPosition, '*', '*')
-                        break
-                    case '`code`':
-                        newContent = this.markdownUpdate(inputer, oldContent, newContent, startPosition, endPosition, '`', '`')
-                        break
-                    case '[Link](http://example.com/)':
-                        newContent = this.markdownUpdate(inputer, oldContent, newContent, startPosition, endPosition, '[', '](http://example.com/)')
-                        break
-                    case '![Img](http://example.com/)':
-                        newContent = this.markdownUpdate(inputer, oldContent, newContent, startPosition, endPosition, '![', '](http://example.com/)')
-                        break
-                    default:
-                        return false
-                        break
-                }
-            }
- 
-        }
-    }
-} 
-</script>
