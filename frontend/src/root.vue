@@ -166,10 +166,8 @@ export default {
     data(){
         return {
             language:'php',
-            // server:'https://zee.kim',
-            // server:'http://zee.local:7002',
-            // server:'',
-            server:'http://192.168.1.6/php-projects/blog',
+            server:'',
+            // server:'http://127.0.0.1/php-projects/blog',
             navFixed:false,
             toTopFadeIn:false,
             toTopStatus:true,

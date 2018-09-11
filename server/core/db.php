@@ -77,19 +77,18 @@ class db {
 			return $e->getMessage();
 		}
 	}
-	function delete($table, $condition = '', $options = []) {
+	function delete($table, $condition = '') {
 		if (empty($condition) || $condition == '') {
 			$sql = "DELETE FROM $table";
 		} else {
 			$sql = "DELETE FROM $table WHERE $condition";
 		}
-		if (isset($options["params"])) {
-			$stmt = $this->link->prepare($sql);
-			$stmt->execute($options["params"]);
-		} else {
-			$stmt = $this->link->query($sql);
-		}
-		if ($stmt > 0) {
+ 
+		$stmt = $this->link->query($sql);
+ 
+		// var_dump($stmt);
+
+		if ($stmt) {
 			return true;
 		} else {
 			return false;

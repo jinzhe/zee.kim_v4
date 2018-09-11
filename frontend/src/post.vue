@@ -170,8 +170,7 @@ export default {
             this.admin.edit=false
         })
         bus.$on("login",()=>{
-            this.items=[]
-            this.getItems()
+            this.admin.upload.data.token=window.localStorage.token;
         })
         bus.$on("hidePost",_=>{
             this.show=false;
@@ -1041,7 +1040,7 @@ export default {
             <div class="content" v-html="markdown(post.content)"></div>
             <div class="photos">
                 <div v-for="(photo,index) in post.photos">
-                    <img :src="$root.server+photo.path" class="zoom" @click="$root.openPreview(post.photos,index)">
+                    <img :src="(photo.path!=undefined?$root.server+photo.path:photo.data)" class="zoom" @click="$root.openPreview(post.photos,index)">
                     <p v-if="photo.description!=''">{{photo.description}}</p>
                 </div>
             </div>
@@ -1096,7 +1095,7 @@ export default {
      
                  <div class="photos">
                     <div class="photo" v-for="(photo,index) in admin.post.photos">
-                        <div class="image" :style="{'background-image':'url('+(photo.data||($root.server+photo.path))+')'}">
+                        <div class="image" :style="{'background-image':'url('+(photo.path!=undefined?$root.server+photo.path:photo.data)+')'}">
                             <div class="mask"  v-if="photo.progress<100" :style="{'height':(100-photo.progress)+'%'}"></div>
                             <div class="progress" v-if="photo.progress<100">{{photo.progress}}%</div>
                         </div>

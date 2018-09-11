@@ -369,7 +369,7 @@ class file {
 		if (isset($options['size'])) {
 			$size = $options['size'];
 		} else {
-			$size = 5;
+			$size = 20;
 		}
 		if (isset($options['exts'])) {
 			$exts = $options['exts'];
@@ -402,9 +402,13 @@ class file {
 			$return = '';
 			if (!empty($upload['name'])) {
 				$ext = self::ext($upload['name']);
+				// echo $ext;
 				if (strpos($exts, $ext) !== false && $upload['size'] < $size * 1024 * 1024) {
 					$name = empty($rename) ? self::uploadName($ext) : self::uploadRename($rename, $ext);
+					// echo $name;
+					// var_dump($upload);
 					if (self::uploadMove($upload['tmp_name'], $target . $name)) {
+
 						$return = array(
 							"path" => str_replace("./", "/", $target) . $name,
 							"name" => $upload['name'],
@@ -440,6 +444,7 @@ class file {
 	 * @return	boolean
 	 */
 	public static function uploadMove($from, $target = '') {
+		// echo $from."|||".$target;
 		if (function_exists("move_uploaded_file")) {
 			if (move_uploaded_file($from, $target)) {
 				@chmod($target, 0755);

@@ -183,11 +183,12 @@ if ($path == "/post/delete-photo/") {
 	if ($id == "") {
 		gum::json(["code" => 400]);
 	}
-	$photo = $db->row("SELECT path FROM post_photo WHERE post_id=:id",[":id"=>$id]);
+	$photo = $db->row("SELECT path FROM post_photo WHERE post_id=':id'",[":id"=>$id]);
+	// var_dump($photo);die();
 	// 删除图片记录
 	$success = $db->delete("post_photo", "id=" . $id);
 	if ($success) {
-		file::delete($photo["path"]);
+		file::delete(".".$photo["path"]);
 		gum::json(["code" => 200]);
 	} else {
 		gum::json(["code" => 404]);
