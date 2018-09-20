@@ -4,7 +4,7 @@
     position: absolute;
     left:0px;
     /*top:240px;*/
-    bottom:20px;
+    bottom:0px;
     width:100%;
     z-index: 9999;
     user-select:none;
@@ -27,7 +27,7 @@
     }
     .control{
         position: absolute;
-        bottom:50px;
+        bottom:60px;
         left:50%;
         display: flex;
         justify-content: space-between;
@@ -63,7 +63,7 @@
 
     .panel {
         position: absolute;
-        bottom:20px;
+        bottom:40px;
         left:5%;
         right:5%;
          transition:all 600ms cubic-bezier(.4,0,0,1);
