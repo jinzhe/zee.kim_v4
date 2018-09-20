@@ -101,6 +101,17 @@
             display: none;
         }
     }
+    .icp{
+        position: absolute;
+        width: 80%;
+        left: 50%;
+        bottom: 10px;
+        font-size:10px;
+        -webkit-transform: translate(-50%,0%);
+        transform: translate(-50%,0%);
+        color:#fff;
+        text-align: center;
+    }
 }
 
 </style>
@@ -121,6 +132,7 @@
 
         <div class="tip" :class="{'change':tipStatus}">{{tip}}</div>
         <player></player>
+        <a class="icp" href="http://www.miitbeian.gov.cn" target="_blank">蜀ICP备14010229号-3</a>
     </div>
     <img v-if="isMobile && !isIpad" src="./images/back.svg" class="close" @click="active=false">
 </div>

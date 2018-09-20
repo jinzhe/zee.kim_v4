@@ -4,7 +4,7 @@
     position: absolute;
     left:0px;
     /*top:240px;*/
-    bottom:0px;
+    bottom:20px;
     width:100%;
     z-index: 9999;
     user-select:none;
